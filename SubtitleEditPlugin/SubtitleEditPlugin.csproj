@@ -28,13 +28,15 @@
 
   <ItemGroup>
     <!--
-      Copied into the package. Logitech's own published plugins ship PluginApi.dll
-      next to the plugin, so the package mirrors that rather than relying on the
-      service to resolve it.
+      Compile-time reference only. PluginApi.dll is part of the Logi Plugin Service
+      runtime and is supplied by the host when the plugin loads, so Private is false
+      and it is never copied into the package. Bundling it risks a version mismatch
+      with the running service, and the marketplace submission form rejects packages
+      that contain it.
     -->
     <Reference Include="PluginApi">
       <HintPath>$(PluginApiDir)PluginApi.dll</HintPath>
-      <Private>true</Private>
+      <Private>false</Private>
     </Reference>
   </ItemGroup>
 
