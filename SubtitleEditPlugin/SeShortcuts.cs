@@ -42,6 +42,7 @@ namespace Loupedeck.SubtitleEditPlugin
                 }
 
                 PluginLog.Warning("SUBTITLE_EDIT_SETTINGS does not point to an existing file: " + overridePath);
+                return null; // An explicit override must not silently select another install.
             }
 
             foreach (var candidate in GetCandidatePaths())
@@ -198,10 +199,12 @@ namespace Loupedeck.SubtitleEditPlugin
             var keys = new List<String>();
             foreach (var key in keysElement.EnumerateArray())
             {
-                if (key.ValueKind == JsonValueKind.String)
+                if (key.ValueKind != JsonValueKind.String)
                 {
-                    keys.Add(key.GetString());
+                    return null; // Never reinterpret an incomplete or malformed key combination.
                 }
+
+                keys.Add(key.GetString());
             }
 
             // An action with no keys is unassigned in Subtitle Edit; there is no
