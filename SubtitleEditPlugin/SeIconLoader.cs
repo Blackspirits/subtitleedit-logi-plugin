@@ -31,6 +31,9 @@ namespace Loupedeck.SubtitleEditPlugin
         /// </summary>
         public static void Initialize(String assemblyFilePath)
         {
+            Cache.Clear();
+            _loggedFirst = false;
+            _folder = null;
             foreach (var baseDir in new[]
             {
                 String.IsNullOrEmpty(assemblyFilePath) ? null : Path.GetDirectoryName(assemblyFilePath),
@@ -67,24 +70,35 @@ namespace Loupedeck.SubtitleEditPlugin
         /// <summary>Returns the SVG for a symbol file name, or null if there is none.</summary>
         public static String LoadSvg(String fileName)
         {
-            if (_folder == null || String.IsNullOrEmpty(fileName))
+            if (_folder == null || String.IsNullOrWhiteSpace(fileName) ||
+                !String.Equals(Path.GetFileName(fileName), fileName, StringComparison.Ordinal) ||
+                !fileName.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
 
-            return Cache.GetOrAdd(fileName, name =>
+            if (Cache.TryGetValue(fileName, out var cached))
             {
-                try
+                return cached;
+            }
+
+            try
+            {
+                var path = Path.Combine(_folder, fileName);
+                if (!File.Exists(path))
                 {
-                    var path = Path.Combine(_folder, name);
-                    return File.Exists(path) ? File.ReadAllText(path) : null;
+                    return null; // ConcurrentDictionary cannot cache null values.
                 }
-                catch (Exception e)
-                {
-                    PluginLog.Warning($"Could not read action symbol {name}: {e.Message}");
-                    return null;
-                }
-            });
+
+                var svg = File.ReadAllText(path);
+                Cache.TryAdd(fileName, svg);
+                return svg;
+            }
+            catch (Exception e)
+            {
+                PluginLog.Warning($"Could not read action symbol {fileName}: {e.Message}");
+                return null;
+            }
         }
 
         private static Boolean _loggedFirst;
