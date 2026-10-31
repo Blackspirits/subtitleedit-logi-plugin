@@ -34,6 +34,7 @@ class PackageTests(unittest.TestCase):
             for functions in (tar_functions, zip_functions):
                 functions["main"].__globals__["SOURCE"] = source
                 functions["main"].__globals__["ROOT"] = root
+            tar_functions["main"].__globals__["OUT"] = root / "dist" / "SubtitleEdit_1_3_1.lplug4"
             tar_functions["main"]()
             zip_functions["main"]()
             tarpath = root / "dist" / "SubtitleEdit_1_3_1.lplug4"
