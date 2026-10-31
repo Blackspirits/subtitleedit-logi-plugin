@@ -2,7 +2,7 @@ name: Regression and package checks
 
 on:
   push:
-    branches: [main, "fix/**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -18,8 +18,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Run production-source keymap and settings tests
