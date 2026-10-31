@@ -49,7 +49,8 @@ namespace Loupedeck.SubtitleEditPlugin
                 { "Backspace", "Back" },
             };
 
-        public static Boolean IsModifier(String token) => Modifiers.ContainsKey(token);
+        public static Boolean IsModifier(String token) =>
+            !String.IsNullOrWhiteSpace(token) && Modifiers.ContainsKey(token);
 
         /// <summary>
         /// Parses a Subtitle Edit key list such as ["Win", "Shift", "B"] into the
@@ -81,7 +82,8 @@ namespace Loupedeck.SubtitleEditPlugin
                     continue;
                 }
 
-                if (!TryParseKey(token, out keyCode))
+                // Exactly one non-modifier key per shortcut.
+                if (haveKey || !TryParseKey(token, out keyCode))
                 {
                     return false;
                 }
@@ -98,30 +100,37 @@ namespace Loupedeck.SubtitleEditPlugin
 
             if (Aliases.TryGetValue(token, out var alias))
             {
-                return Enum.TryParse(alias, ignoreCase: true, out keyCode);
+                return ParseDefinedKey(alias, out keyCode);
             }
 
             // "A".."Z"
             if (token.Length == 1 && Char.IsLetter(token[0]))
             {
-                return Enum.TryParse("Key" + Char.ToUpperInvariant(token[0]), ignoreCase: true, out keyCode);
+                return ParseDefinedKey("Key" + Char.ToUpperInvariant(token[0]), out keyCode);
             }
 
             // "0".."9"
             if (token.Length == 1 && Char.IsDigit(token[0]))
             {
-                return Enum.TryParse("Key" + token, ignoreCase: true, out keyCode);
+                return ParseDefinedKey("Key" + token, out keyCode);
             }
 
             // Avalonia spells the number row "D0".."D9"
             if (token.Length == 2 && (token[0] == 'D' || token[0] == 'd') && Char.IsDigit(token[1]))
             {
-                return Enum.TryParse("Key" + token[1], ignoreCase: true, out keyCode);
+                return ParseDefinedKey("Key" + token[1], out keyCode);
             }
 
             // Delete, Insert, Back, Tab, Space, Return, Escape, Home, End,
             // PageUp, PageDown, F1..F24, Add, Subtract, ...
-            return Enum.TryParse(token, ignoreCase: true, out keyCode);
+            return ParseDefinedKey(token, out keyCode);
+        }
+
+        private static Boolean ParseDefinedKey(String name, out VirtualKeyCode keyCode)
+        {
+            return Enum.TryParse(name, ignoreCase: true, out keyCode) &&
+                   keyCode != VirtualKeyCode.None &&
+                   Enum.IsDefined(typeof(VirtualKeyCode), keyCode);
         }
     }
 }

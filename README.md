@@ -6,8 +6,9 @@ device: MX Master (Actions Ring), MX Keys, or the MX Creative Console (buttons a
 Built on the [Logi Actions SDK](https://logitech.github.io/actions-sdk-docs/).
 Runs on macOS and Windows from the same source, and is tested on both.
 
-Submitted to the Logi Marketplace and awaiting review. Until it is approved there,
-install from a release with the steps below.
+Available on the [Logi Marketplace](https://marketplace.logi.com/plugin/SubtitleEdit/en)
+(version 1.3.1). Install through Options+ when possible; manual installation
+instructions are below for developers and offline use.
 
 ## Screenshots
 
@@ -85,9 +86,8 @@ plugin service.
 
 ## Installing and running locally
 
-Once the Marketplace listing is approved, installing is a double click on the `.lplug4`,
-which opens Logi Options+ and walks you through it. Until then, or for a package you
-built yourself, install it manually.
+For most users, install directly from the Logi Marketplace in Options+.
+For a package you built yourself or an offline install, install it manually.
 
 **From a build, with the .NET SDK (macOS or Windows):**
 
@@ -106,7 +106,7 @@ unpack it into a folder and point the plugin service at that folder with a `.lin
 $pkg  = "$env:USERPROFILE\SubtitleEditPlugin"
 $dest = "$env:LOCALAPPDATA\Logi\LogiPluginService\Plugins"
 New-Item -ItemType Directory -Force -Path $pkg, $dest | Out-Null
-tar -xf "$env:USERPROFILE\Downloads\SubtitleEdit_1_3.lplug4" -C $pkg
+tar -xf "$env:USERPROFILE\Downloads\SubtitleEdit_1_3_1.lplug4" -C $pkg
 Set-Content "$dest\SubtitleEditPlugin.link" "$pkg\" -NoNewline -Encoding ASCII
 Stop-Process -Name LogiPluginService -Force
 ```
@@ -197,4 +197,20 @@ published Logitech plugin.
   cases (number row `D4`, arrows, numpad `Add` and `Subtract`, `Back`, and multi modifier
   combinations such as `Win+Alt+Shift+D`).
 - Compiles against the shipped `PluginApi.dll`.
-- Submitted to the Logi Marketplace and awaiting review.
+- Published on the Logi Marketplace (v1.3.1).
+
+## Validation and contributing
+
+Portable regression tests use the real `SeShortcuts.cs` and `SeKeyMap.cs` sources
+with minimal SDK type stand-ins. They do not require Logi Options+ or a device:
+
+```bash
+dotnet run --project tests/CoreRegression/CoreRegression.csproj -c Release
+python3 -m unittest discover -s tests/packaging -p 'test_*.py' -v
+```
+
+GitHub Actions runs these checks on Windows, Linux and macOS. Because the real
+Logitech `PluginApi.dll` is supplied by the installed Logi service, this is **not**
+a substitute for a full SDK build or physical-device regression testing.
+
+Portuguese localisation review: [docs/pt-PT-audit.md](docs/pt-PT-audit.md).

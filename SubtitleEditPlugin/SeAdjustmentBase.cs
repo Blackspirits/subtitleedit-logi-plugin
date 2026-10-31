@@ -35,7 +35,8 @@ namespace Loupedeck.SubtitleEditPlugin
             }
 
             var action = diff > 0 ? this._forwardAction : this._backAction;
-            var ticks = Math.Min(Math.Abs(diff), MaxTicksPerEvent);
+            // Math.Abs(Int32.MinValue) throws; widening first handles every possible diff.
+            var ticks = (Int32)Math.Min(Math.Abs((Int64)diff), MaxTicksPerEvent);
             for (var i = 0; i < ticks; i++)
             {
                 this.Send(action);
@@ -68,7 +69,14 @@ namespace Loupedeck.SubtitleEditPlugin
                 return;
             }
 
-            this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
+            try
+            {
+                this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e, $"Could not send dial shortcut for {actionName}");
+            }
         }
     }
 

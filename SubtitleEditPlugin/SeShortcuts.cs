@@ -34,9 +34,15 @@ namespace Loupedeck.SubtitleEditPlugin
         public static String ResolveSettingsPath()
         {
             var overridePath = Environment.GetEnvironmentVariable(PathOverrideVariable);
-            if (!String.IsNullOrWhiteSpace(overridePath) && File.Exists(overridePath))
+            if (!String.IsNullOrWhiteSpace(overridePath))
             {
-                return overridePath;
+                if (File.Exists(overridePath))
+                {
+                    return overridePath;
+                }
+
+                PluginLog.Warning("SUBTITLE_EDIT_SETTINGS does not point to an existing file: " + overridePath);
+                return null; // An explicit override must not silently select another install.
             }
 
             foreach (var candidate in GetCandidatePaths())
@@ -82,20 +88,20 @@ namespace Loupedeck.SubtitleEditPlugin
         /// </summary>
         private static String TryGetPortableSettingsPath()
         {
-            try
+            foreach (var process in System.Diagnostics.Process.GetProcessesByName("SubtitleEdit"))
             {
-                foreach (var process in System.Diagnostics.Process.GetProcessesByName("SubtitleEdit"))
+                using (process)
                 {
-                    using (process)
+                    try
                     {
                         var executable = process.MainModule?.FileName;
-                        if (String.IsNullOrEmpty(executable))
+                        if (String.IsNullOrWhiteSpace(executable))
                         {
                             continue;
                         }
 
                         var folder = Path.GetDirectoryName(executable);
-                        if (String.IsNullOrEmpty(folder))
+                        if (String.IsNullOrWhiteSpace(folder))
                         {
                             continue;
                         }
@@ -106,11 +112,12 @@ namespace Loupedeck.SubtitleEditPlugin
                             return candidate;
                         }
                     }
+                    catch (Exception e)
+                    {
+                        // One inaccessible instance must not prevent checking the others.
+                        PluginLog.Verbose("Could not inspect one running Subtitle Edit: " + e.Message);
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                PluginLog.Verbose("Could not inspect a running Subtitle Edit: " + e.Message);
             }
 
             return null;
@@ -121,56 +128,60 @@ namespace Loupedeck.SubtitleEditPlugin
         /// Returns an empty map when Subtitle Edit has never been run, so the plugin
         /// still loads and simply has nothing to send.
         /// </summary>
-        public static Dictionary<String, SeBinding> Load()
+        // A failed or partially written settings file must never erase known-good bindings.
+        // Success with zero bindings is valid (the user can unassign all shortcuts).
+        public static Boolean TryLoad(out Dictionary<String, SeBinding> result)
         {
-            var result = new Dictionary<String, SeBinding>(StringComparer.Ordinal);
+            result = new Dictionary<String, SeBinding>(StringComparer.Ordinal);
 
-            var path = ResolveSettingsPath();
-            if (path == null)
-            {
-                PluginLog.Warning("Subtitle Edit Settings.json not found, no shortcuts loaded");
-                return result;
-            }
-
+            String path = null;
             try
             {
-                // ReadAllText strips the byte order mark that Subtitle Edit writes.
+                path = ResolveSettingsPath();
+                if (path == null)
+                {
+                    PluginLog.Warning("Subtitle Edit Settings.json not found; keeping current shortcuts");
+                    return false;
+                }
+
                 var json = File.ReadAllText(path, System.Text.Encoding.UTF8);
                 using var document = JsonDocument.Parse(json);
 
-                if (!TryGetProperty(document.RootElement, "Shortcuts", out var shortcuts) ||
+                if (document.RootElement.ValueKind != JsonValueKind.Object ||
+                    !TryGetProperty(document.RootElement, "Shortcuts", out var shortcuts) ||
                     shortcuts.ValueKind != JsonValueKind.Array)
                 {
-                    PluginLog.Warning("No Shortcuts array in " + path);
-                    return result;
+                    PluginLog.Warning("No valid Shortcuts array in " + path);
+                    return false;
                 }
 
+                var next = new Dictionary<String, SeBinding>(StringComparer.Ordinal);
                 foreach (var entry in shortcuts.EnumerateArray())
                 {
                     var binding = ReadBinding(entry);
-                    if (binding != null)
+                    if (binding != null && !next.ContainsKey(binding.ActionName))
                     {
-                        // First one wins, matching how Subtitle Edit groups by action name.
-                        if (!result.ContainsKey(binding.ActionName))
-                        {
-                            result[binding.ActionName] = binding;
-                        }
+                        // Match Subtitle Edit's first-binding-wins behavior.
+                        next[binding.ActionName] = binding;
                     }
                 }
 
+                result = next;
                 PluginLog.Info($"Loaded {result.Count} Subtitle Edit shortcuts from {path}");
+                return true;
             }
             catch (Exception e)
             {
                 PluginLog.Error(e, "Could not read Subtitle Edit settings from " + path);
+                return false;
             }
-
-            return result;
         }
 
         private static SeBinding ReadBinding(JsonElement entry)
         {
-            if (!TryGetProperty(entry, "ActionName", out var actionElement))
+            if (entry.ValueKind != JsonValueKind.Object ||
+                !TryGetProperty(entry, "ActionName", out var actionElement) ||
+                actionElement.ValueKind != JsonValueKind.String)
             {
                 return null;
             }
@@ -189,10 +200,12 @@ namespace Loupedeck.SubtitleEditPlugin
             var keys = new List<String>();
             foreach (var key in keysElement.EnumerateArray())
             {
-                if (key.ValueKind == JsonValueKind.String)
+                if (key.ValueKind != JsonValueKind.String)
                 {
-                    keys.Add(key.GetString());
+                    return null; // Never reinterpret an incomplete or malformed key combination.
                 }
+
+                keys.Add(key.GetString());
             }
 
             // An action with no keys is unassigned in Subtitle Edit; there is no
@@ -202,7 +215,8 @@ namespace Loupedeck.SubtitleEditPlugin
                 return null;
             }
 
-            var controlName = TryGetProperty(entry, "ControlName", out var controlElement)
+            var controlName = TryGetProperty(entry, "ControlName", out var controlElement) &&
+                controlElement.ValueKind == JsonValueKind.String
                 ? controlElement.GetString()
                 : null;
 
@@ -218,6 +232,12 @@ namespace Loupedeck.SubtitleEditPlugin
 
         private static Boolean TryGetProperty(JsonElement element, String name, out JsonElement value)
         {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                value = default;
+                return false;
+            }
+
             if (element.TryGetProperty(name, out value))
             {
                 return true;

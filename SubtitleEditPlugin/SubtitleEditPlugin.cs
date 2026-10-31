@@ -45,10 +45,18 @@ namespace Loupedeck.SubtitleEditPlugin
         /// <summary>Re-reads Settings.json. Called on load and by the reload action.</summary>
         public static void ReloadBindings()
         {
-            var bindings = SeShortcuts.Load();
+            var success = SeShortcuts.TryLoad(out var bindings);
             lock (BindingsLock)
             {
-                _bindings = bindings;
+                if (success)
+                {
+                    _bindings = bindings;
+                }
+                else
+                {
+                    PluginLog.Warning("Could not reload shortcuts; retaining last known-good bindings");
+                }
+
                 _loaded = true;
             }
         }

@@ -53,8 +53,15 @@ namespace Loupedeck.SubtitleEditPlugin
                 return;
             }
 
-            this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
-            PluginLog.Verbose($"Sent {binding.KeysText} for {binding.ActionName}");
+            try
+            {
+                this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
+                PluginLog.Verbose($"Sent {binding.KeysText} for {binding.ActionName}");
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e, $"Could not send shortcut for {binding.ActionName}");
+            }
         }
 
         // Draw the action's icon on the device button, for example the Actions Ring

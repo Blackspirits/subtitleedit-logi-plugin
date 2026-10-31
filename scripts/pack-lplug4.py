@@ -49,15 +49,20 @@ def main():
     OUT.parent.mkdir(exist_ok=True)
     with tarfile.open(OUT, "w", format=tarfile.USTAR_FORMAT) as tar:
         for folder in folders:
-            tar.addfile(entry(folder + "/", 0o777, 0, tarfile.DIRTYPE))
+            tar.addfile(entry(folder + "/", 0o755, 0, tarfile.DIRTYPE))
         for folder in folders:
-            for path in sorted((SOURCE / folder).iterdir()):
-                if path.is_file():
+            root = SOURCE / folder
+            for path in sorted(root.rglob("*")):
+                name = path.relative_to(SOURCE).as_posix()
+                if path.is_dir():
+                    tar.addfile(entry(name + "/", 0o755, 0, tarfile.DIRTYPE))
+                elif path.is_file():
                     data = path.read_bytes()
-                    tar.addfile(entry(f"{folder}/{path.name}", 0o666, len(data), tarfile.REGTYPE),
+                    tar.addfile(entry(name, 0o644, len(data), tarfile.REGTYPE),
                                 io.BytesIO(data))
 
-    names = tarfile.open(OUT).getnames()
+    with tarfile.open(OUT) as archive:
+        names = archive.getnames()
     for required in ("metadata/LoupedeckPackage.yaml", "metadata/Icon256x256.png",
                      "bin/SubtitleEditPlugin.dll"):
         if required not in names:
