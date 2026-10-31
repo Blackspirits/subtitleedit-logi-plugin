@@ -14,6 +14,12 @@ namespace Loupedeck.SubtitleEditPlugin
         ArrowLeft, ArrowRight, Add, Subtract, Back, Return, Escape, F1
     }
 
+    // Minimal rendering stand-in for production SeIconLoader smoke tests.
+    public sealed class BitmapImage
+    {
+        public static BitmapImage FromSvg(String svg) => new BitmapImage();
+    }
+
     internal static class PluginLog
     {
         public static void Warning(String message) => Console.Error.WriteLine(message);
@@ -92,12 +98,40 @@ namespace Loupedeck.SubtitleEditPlugin
             }
         }
 
+        private static void TestIcons()
+        {
+            var root = Path.Combine(Path.GetTempPath(), "se-logi-icons-" + Guid.NewGuid().ToString("N"));
+            var bin = Path.Combine(root, "bin");
+            var folder = Path.Combine(root, "actionsymbols");
+            Directory.CreateDirectory(bin);
+            Directory.CreateDirectory(folder);
+            try
+            {
+                var icon = Path.Combine(folder, "sample.svg");
+                File.WriteAllText(icon, "<svg id='before'/>");
+                SeIconLoader.Initialize(Path.Combine(bin, "SubtitleEditPlugin.dll"));
+                Check(SeIconLoader.LoadSvg("sample.svg") == "<svg id='before'/>", "load sibling SVG");
+                Check(SeIconLoader.Image("sample.svg") != null, "render SVG");
+                Check(SeIconLoader.LoadSvg("absent.svg") == null, "missing icon must not throw");
+                Check(SeIconLoader.LoadSvg("../sample.svg") == null, "reject traversing relative paths");
+                File.WriteAllText(icon, "<svg id='after'/>");
+                Check(SeIconLoader.LoadSvg("sample.svg") == "<svg id='before'/>", "cache SVG text");
+                SeIconLoader.Initialize(Path.Combine(bin, "SubtitleEditPlugin.dll"));
+                Check(SeIconLoader.LoadSvg("sample.svg") == "<svg id='after'/>", "invalidate on reload");
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
         private static Int32 Main()
         {
             try
             {
                 TestKeyMap();
                 TestSettings();
+                TestIcons();
                 Console.WriteLine("Core regression tests passed (" + _assertions + " assertions).");
                 return 0;
             }
