@@ -27,6 +27,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SE = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT.parent / "subtitleedit"
 NEUTRAL = ROOT / "SubtitleEditPlugin" / "Release" / "localization.generated" / "SubtitleEdit.xliff"
 OUT = ROOT / "SubtitleEditPlugin" / "package" / "localization"
+PT_OVERRIDES = ROOT / "scripts" / "localization-overrides-pt-PT.json"
 
 ID_PREFIX = "$SubtitleEdit___Loupedeck.SubtitleEditPlugin.SeCommand___"
 
@@ -122,6 +123,16 @@ def main():
                 h = f.find("header")
                 if h is not None:
                     f.remove(h)
+            # Plugin-only strings lack upstream equivalents; a small reviewed override
+            # table also corrects known UI labels while upstream fixes are adopted.
+            if code == "pt-PT":
+                overrides = json.loads(PT_OVERRIDES.read_text(encoding="utf-8"))
+                for unit in root.iter("trans-unit"):
+                    source = unit.find("source")
+                    target = unit.find("target")
+                    if source is not None and target is not None and source.text in overrides:
+                        target.text = overrides[source.text]
+
             path = OUT / f"SubtitleEdit_{code}.xliff"
             tree.write(path, encoding="utf-8", xml_declaration=True)
             written.append((code, filled, total))
