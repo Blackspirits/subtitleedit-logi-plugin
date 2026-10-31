@@ -61,7 +61,8 @@ def main():
                     tar.addfile(entry(name, 0o644, len(data), tarfile.REGTYPE),
                                 io.BytesIO(data))
 
-    names = tarfile.open(OUT).getnames()
+    with tarfile.open(OUT) as archive:
+        names = archive.getnames()
     for required in ("metadata/LoupedeckPackage.yaml", "metadata/Icon256x256.png",
                      "bin/SubtitleEditPlugin.dll"):
         if required not in names:
