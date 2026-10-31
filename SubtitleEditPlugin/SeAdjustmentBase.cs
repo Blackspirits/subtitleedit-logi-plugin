@@ -69,7 +69,14 @@ namespace Loupedeck.SubtitleEditPlugin
                 return;
             }
 
-            this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
+            try
+            {
+                this.Plugin.ClientApplication.SendKeyboardShortcut(binding.KeyCode, binding.Modifiers);
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e, $"Could not send dial shortcut for {actionName}");
+            }
         }
     }
 
