@@ -55,6 +55,7 @@ namespace Loupedeck.SubtitleEditPlugin
             Keys(new[] { "Ctrl", "Add" }, VirtualKeyCode.Add, ModifierKey.Control);
             Keys(new[] { "Backspace" }, VirtualKeyCode.Back, ModifierKey.None);
             Check(!SeKeyMap.TryParse(new[] { "Ctrl" }, out _, out _), "modifier alone");
+            Check(!SeKeyMap.IsModifier(null), "null modifier lookup");
             Check(!SeKeyMap.TryParse(new[] { "Ctrl", "A", "B" }, out _, out _), "two main keys");
             Check(!SeKeyMap.TryParse(new[] { "99999" }, out _, out _), "numeric enum spoofing");
             Check(!SeKeyMap.TryParse(new[] { "NotAKey" }, out _, out _), "unknown key");
@@ -80,6 +81,9 @@ namespace Loupedeck.SubtitleEditPlugin
                     "null]}");
                 Check(SeShortcuts.TryLoad(out var bindings), "valid JSON loaded");
                 Check(bindings.Count == 1, "invalid and unassigned entries skipped");
+                File.WriteAllText(file, "{\"Shortcuts\":[{\"ActionName\":\"InvalidKeyType\",\"Keys\":[\"Ctrl\",4]}]}");
+                Check(SeShortcuts.TryLoad(out var invalidKeys) && invalidKeys.Count == 0,
+                    "nonstring shortcut token cannot silently become a binding");
                 Check(bindings["GoToNextLineCommand"].KeyCode == VirtualKeyCode.Key4,
                     "case-insensitive JSON properties");
 
