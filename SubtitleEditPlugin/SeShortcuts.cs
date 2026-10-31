@@ -134,15 +134,16 @@ namespace Loupedeck.SubtitleEditPlugin
         {
             result = new Dictionary<String, SeBinding>(StringComparer.Ordinal);
 
-            var path = ResolveSettingsPath();
-            if (path == null)
-            {
-                PluginLog.Warning("Subtitle Edit Settings.json not found; keeping current shortcuts");
-                return false;
-            }
-
+            String path = null;
             try
             {
+                path = ResolveSettingsPath();
+                if (path == null)
+                {
+                    PluginLog.Warning("Subtitle Edit Settings.json not found; keeping current shortcuts");
+                    return false;
+                }
+
                 var json = File.ReadAllText(path, System.Text.Encoding.UTF8);
                 using var document = JsonDocument.Parse(json);
 
