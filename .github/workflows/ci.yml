@@ -1,0 +1,28 @@
+name: Regression and package checks
+
+on:
+  push:
+    branches: [main, "fix/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-regression:
+    name: Core and packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Run production-source keymap and settings tests
+        run: dotnet run --project tests/CoreRegression/CoreRegression.csproj --configuration Release
+      - name: Run packaging tests
+        run: python -m unittest discover -s tests/packaging -p "test_*.py" -v

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Test real production sources without requiring an installed Logitech SDK. -->
+    <Compile Include="../../SubtitleEditPlugin/SeKeyMap.cs" Link="SeKeyMap.cs" />
+    <Compile Include="../../SubtitleEditPlugin/SeShortcuts.cs" Link="SeShortcuts.cs" />
+  </ItemGroup>
+</Project>
