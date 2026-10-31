@@ -49,7 +49,8 @@ namespace Loupedeck.SubtitleEditPlugin
                 { "Backspace", "Back" },
             };
 
-        public static Boolean IsModifier(String token) => Modifiers.ContainsKey(token);
+        public static Boolean IsModifier(String token) =>
+            !String.IsNullOrWhiteSpace(token) && Modifiers.ContainsKey(token);
 
         /// <summary>
         /// Parses a Subtitle Edit key list such as ["Win", "Shift", "B"] into the
