@@ -9,5 +9,6 @@
     <!-- Test real production sources without requiring an installed Logitech SDK. -->
     <Compile Include="../../SubtitleEditPlugin/SeKeyMap.cs" Link="SeKeyMap.cs" />
     <Compile Include="../../SubtitleEditPlugin/SeShortcuts.cs" Link="SeShortcuts.cs" />
+    <Compile Include="../../SubtitleEditPlugin/SeIconLoader.cs" Link="SeIconLoader.cs" />
   </ItemGroup>
 </Project>
